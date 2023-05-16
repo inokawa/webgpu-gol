@@ -1,0 +1,25 @@
+{
+  "name": "webgpu-gol",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tsc": "tsc -p . --noEmit"
+  },
+  "devDependencies": {
+    "@webgpu/types": "^0.1.32",
+    "typescript": "^5.0.4",
+    "vite": "^4.3.6"
+  },
+  "author": "inokawa",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inokawa/webgpu-gol.git"
+  },
+  "bugs": {
+    "url": "https://github.com/inokawa/webgpu-gol/issues"
+  },
+  "homepage": "https://github.com/inokawa/webgpu-gol#readme"
+}
