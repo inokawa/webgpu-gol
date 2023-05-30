@@ -55,7 +55,11 @@ const cellShaderModule = device.createShaderModule({
           @vertex
           fn vertexMain(@location(0) pos: vec2f) ->
             @builtin(position) vec4f {
-            return vec4f(pos / grid, 0, 1);
+
+            // Add 1 to the position before dividing by the grid size.
+            let gridPos = (pos + 1) / grid;
+          
+            return vec4f(gridPos, 0, 1);
           }
 
           @fragment
