@@ -20,7 +20,7 @@ context.configure({
   format: canvasFormat,
 });
 
-const GRID_SIZE = 4;
+const GRID_SIZE = 32;
 
 // Create a buffer with the vertices for a single cell.
 const vertices = new Float32Array([
