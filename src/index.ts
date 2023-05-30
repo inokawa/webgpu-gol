@@ -20,22 +20,13 @@ context.configure({
   format: canvasFormat,
 });
 
+const GRID_SIZE = 4;
+
 // Create a buffer with the vertices for a single cell.
 const vertices = new Float32Array([
-  //   X,    Y
-  -0.8,
-  -0.8, // Triangle 1
-  0.8,
-  -0.8,
-  0.8,
-  0.8,
+  -0.8, -0.8, 0.8, -0.8, 0.8, 0.8,
 
-  -0.8,
-  -0.8, // Triangle 2
-  0.8,
-  0.8,
-  -0.8,
-  0.8,
+  -0.8, -0.8, 0.8, 0.8, -0.8, 0.8,
 ]);
 const vertexBuffer = device.createBuffer({
   label: "Cell vertices",
@@ -59,17 +50,19 @@ const vertexBufferLayout: GPUVertexBufferLayout = {
 const cellShaderModule = device.createShaderModule({
   label: "Cell shader",
   code: `
-    @vertex
-    fn vertexMain(@location(0) position: vec2f)
-      -> @builtin(position) vec4f {
-      return vec4f(position, 0, 1);
-    }
+          @group(0) @binding(0) var<uniform> grid: vec2f;
 
-    @fragment
-    fn fragmentMain() -> @location(0) vec4f {
-      return vec4f(1, 0, 0, 1);
-    }
-  `,
+          @vertex
+          fn vertexMain(@location(0) pos: vec2f) ->
+            @builtin(position) vec4f {
+            return vec4f(pos / grid, 0, 1);
+          }
+
+          @fragment
+          fn fragmentMain() -> @location(0) vec4f {
+            return vec4f(1, 0, 0, 1);
+          }
+        `,
 });
 
 // Create a pipeline that renders the cell.
@@ -92,6 +85,27 @@ const cellPipeline = device.createRenderPipeline({
   },
 });
 
+// Create a uniform buffer that describes the grid.
+const uniformArray = new Float32Array([GRID_SIZE, GRID_SIZE]);
+const uniformBuffer = device.createBuffer({
+  label: "Grid Uniforms",
+  size: uniformArray.byteLength,
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
+
+// Create a bind group to pass the grid uniforms into the pipeline
+const bindGroup = device.createBindGroup({
+  label: "Cell renderer bind group",
+  layout: cellPipeline.getBindGroupLayout(0),
+  entries: [
+    {
+      binding: 0,
+      resource: { buffer: uniformBuffer },
+    },
+  ],
+});
+
 // Clear the canvas with a render pass
 const encoder = device.createCommandEncoder();
 
@@ -108,7 +122,9 @@ const pass = encoder.beginRenderPass({
 
 // Draw the square.
 pass.setPipeline(cellPipeline);
+pass.setBindGroup(0, bindGroup);
 pass.setVertexBuffer(0, vertexBuffer);
+
 pass.draw(vertices.length / 2);
 
 pass.end();
