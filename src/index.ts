@@ -53,13 +53,15 @@ const cellShaderModule = device.createShaderModule({
           @group(0) @binding(0) var<uniform> grid: vec2f;
 
           @vertex
-          fn vertexMain(@location(0) pos: vec2f) ->
+          fn vertexMain(@location(0) pos: vec2f,
+                        @builtin(instance_index) instance: u32) ->
             @builtin(position) vec4f {
 
-            let cell = vec2f(1, 1);
-            let cellOffset = cell / grid * 2;
+            let i = f32(instance); // Save the instance_index as a float
+            let cell = vec2f(i, i);
+            let cellOffset = cell / grid * 2; // Updated
             let gridPos = (pos + 1) / grid - 1 + cellOffset;
-          
+
             return vec4f(gridPos, 0, 1);
           }
 
@@ -130,7 +132,7 @@ pass.setPipeline(cellPipeline);
 pass.setBindGroup(0, bindGroup);
 pass.setVertexBuffer(0, vertexBuffer);
 
-pass.draw(vertices.length / 2);
+pass.draw(vertices.length / 2, GRID_SIZE * GRID_SIZE);
 
 pass.end();
 
