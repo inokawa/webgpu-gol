@@ -57,7 +57,7 @@ const cellShaderModule = device.createShaderModule({
             @builtin(position) vec4f {
 
             // Add 1 to the position before dividing by the grid size.
-            let gridPos = (pos + 1) / grid;
+            let gridPos = (pos + 1) / grid - 1;
           
             return vec4f(gridPos, 0, 1);
           }
