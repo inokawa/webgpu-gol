@@ -24,6 +24,7 @@ fn vertexMain(input: VertexInput) -> VertexOutput  {
 }
 
 @fragment
-  fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
-  return vec4f(input.cell/grid, 0, 1);
+fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
+  let c = input.cell / grid;
+  return vec4f(c, 1-c.x, 1);
 }
