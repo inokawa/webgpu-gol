@@ -83,6 +83,21 @@ const uniformBuffer = device.createBuffer({
 });
 device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
 
+// Create an array representing the active state of each cell.
+const cellStateArray = new Uint32Array(GRID_SIZE * GRID_SIZE);
+// Create a storage buffer to hold the cell state.
+const cellStateStorage = device.createBuffer({
+  label: "Cell State",
+  size: cellStateArray.byteLength,
+  usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+});
+
+// Mark every third cell of the grid as active.
+for (let i = 0; i < cellStateArray.length; i += 3) {
+  cellStateArray[i] = 1;
+}
+device.queue.writeBuffer(cellStateStorage, 0, cellStateArray);
+
 // Create a bind group to pass the grid uniforms into the pipeline
 const bindGroup = device.createBindGroup({
   label: "Cell renderer bind group",
@@ -91,6 +106,10 @@ const bindGroup = device.createBindGroup({
     {
       binding: 0,
       resource: { buffer: uniformBuffer },
+    },
+    {
+      binding: 1,
+      resource: { buffer: cellStateStorage },
     },
   ],
 });
