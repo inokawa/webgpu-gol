@@ -76,11 +76,8 @@ const cellShaderModule = device.createShaderModule({
           }
 
           @fragment
-          fn fragmentMain(@location(0) cell: vec2f) -> @location(0) vec4f {
-            // Remember, fragment return values are (Red, Green, Blue, Alpha)
-            // and since cell is a 2D vector, this is equivalent to:
-            // (Red = cell.x, Green = cell.y, Blue = 0, Alpha = 1)
-            return vec4f(cell, 0, 1);
+          fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
+            return vec4f(input.cell/grid, 0, 1);
           }
         `,
 });
