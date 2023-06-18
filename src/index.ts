@@ -23,7 +23,7 @@ context.configure({
 });
 
 const GRID_SIZE = 32;
-const UPDATE_INTERVAL = 200;
+const UPDATE_INTERVAL = 250;
 const WORKGROUP_SIZE = 8;
 
 // Create a buffer with the vertices for a single cell.
@@ -102,28 +102,52 @@ const cellPipeline = device.createRenderPipeline({
   },
 });
 
-// Create the compute shader that will process the simulation.
+// Create the compute shader that will process the game of life simulation.
 const simulationShaderModule = device.createShaderModule({
-  label: "Game of Life simulation shader",
+  label: "Life simulation shader",
   code: `
   @group(0) @binding(0) var<uniform> grid: vec2f;
 
   @group(0) @binding(1) var<storage> cellStateIn: array<u32>;
   @group(0) @binding(2) var<storage, read_write> cellStateOut: array<u32>;
-  
+
   fn cellIndex(cell: vec2u) -> u32 {
-    return cell.y * u32(grid.x) + cell.x;
+    return (cell.y % u32(grid.y)) * u32(grid.x) +
+            (cell.x % u32(grid.x));
   }
-  
+
+  fn cellActive(x: u32, y: u32) -> u32 {
+    return cellStateIn[cellIndex(vec2(x, y))];
+  }
+
   @compute @workgroup_size(${WORKGROUP_SIZE}, ${WORKGROUP_SIZE})
   fn computeMain(@builtin(global_invocation_id) cell: vec3u) {
-    if (cellStateIn[cellIndex(cell.xy)] == 1) {
-      cellStateOut[cellIndex(cell.xy)] = 0;
-    } else {
-      cellStateOut[cellIndex(cell.xy)] = 1;
+    // Determine how many active neighbors this cell has.
+    let activeNeighbors = cellActive(cell.x+1, cell.y+1) +
+                          cellActive(cell.x+1, cell.y) +
+                          cellActive(cell.x+1, cell.y-1) +
+                          cellActive(cell.x, cell.y-1) +
+                          cellActive(cell.x-1, cell.y-1) +
+                          cellActive(cell.x-1, cell.y) +
+                          cellActive(cell.x-1, cell.y+1) +
+                          cellActive(cell.x, cell.y+1);
+
+    let i = cellIndex(cell.xy);
+
+    // Conway's game of life rules:
+    switch activeNeighbors {
+      case 2: { // Active cells with 2 neighbors stay active.
+        cellStateOut[i] = cellStateIn[i];
+      }
+      case 3: { // Cells with 3 neighbors become or stay active.
+        cellStateOut[i] = 1;
+      }
+      default: { // Cells with < 2 or > 3 neighbors become inactive.
+        cellStateOut[i] = 0;
+      }
     }
   }
-`,
+        `,
 });
 
 // Create a compute pipeline that updates the game state.
@@ -161,16 +185,12 @@ const cellStateStorage = [
   }),
 ];
 
-// Mark every third cell of the first grid as active.
-for (let i = 0; i < cellStateArray.length; i += 3) {
-  cellStateArray[i] = 1;
+// Set each cell to a random state, then copy the JavaScript array into
+// the storage buffer.
+for (let i = 0; i < cellStateArray.length; ++i) {
+  cellStateArray[i] = Math.random() > 0.6 ? 1 : 0;
 }
 device.queue.writeBuffer(cellStateStorage[0], 0, cellStateArray);
-// Mark every other cell of the second grid as active.
-for (let i = 0; i < cellStateArray.length; i++) {
-  cellStateArray[i] = i % 2;
-}
-device.queue.writeBuffer(cellStateStorage[1], 0, cellStateArray);
 
 // Create a bind group to pass the grid uniforms into the pipeline
 const bindGroups = [
@@ -212,10 +232,11 @@ const bindGroups = [
   }),
 ];
 
-let step = 0; // Track how many simulation steps have been run
-// Move all of our rendering code into a function
+let step = 0;
 function updateGrid() {
   const encoder = device.createCommandEncoder();
+
+  // Start a compute pass
   const computePass = encoder.beginComputePass();
 
   computePass.setPipeline(simulationPipeline),
@@ -248,6 +269,4 @@ function updateGrid() {
   pass.end();
   device.queue.submit([encoder.finish()]);
 }
-
-// Schedule updateGrid() to run repeatedly
 setInterval(updateGrid, UPDATE_INTERVAL);
